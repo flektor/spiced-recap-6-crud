@@ -5,6 +5,8 @@ import styled from "styled-components";
 import { StyledLink } from "../../../components/StyledLink.js";
 import { StyledButton } from "../../../components/StyledButton.js";
 import { StyledImage } from "../../../components/StyledImage.js";
+import DeleteDialog from "../../../components/DeleteDialog.js";
+import { useState } from "react";
 
 const ImageContainer = styled.div`
   position: relative;
@@ -29,6 +31,8 @@ const StyledLocationLink = styled(StyledLink)`
 `;
 
 export default function DetailsPage() {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
   const router = useRouter();
   const { isReady } = router;
   const { id } = router.query;
@@ -37,8 +41,25 @@ export default function DetailsPage() {
 
   if (!isReady || isLoading || error) return <h2>Loading...</h2>;
 
-  function deletePlace() {
-    console.log("deleted?");
+  function toggleDeleteDialog() {
+    setShowDeleteDialog((state) => !state);
+  }
+
+  async function deletePlace() {
+    console.log("remove: " + id);
+    const response = await fetch(`/api/places/${id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (response.ok) {
+      await response.json();
+      router.push(`/`);
+    } else {
+      console.error(`Error: ${response.status}`);
+    }
   }
 
   return (
@@ -68,10 +89,22 @@ export default function DetailsPage() {
         <Link href={`/places/${id}/edit`} passHref legacyBehavior>
           <StyledLink>Edit</StyledLink>
         </Link>
-        <StyledButton onClick={deletePlace} type="button" variant="delete">
+        <StyledButton
+          onClick={toggleDeleteDialog}
+          type="button"
+          variant="delete"
+        >
           Delete
         </StyledButton>
       </ButtonContainer>
+      {showDeleteDialog && (
+        <DeleteDialog
+          place={place.name}
+          location={place.location}
+          onDelete={deletePlace}
+          onCancel={toggleDeleteDialog}
+        />
+      )}
     </>
   );
 }
